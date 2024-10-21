@@ -1,6 +1,6 @@
 import express from 'express';
 const router = express.Router();
-import pool from '../db';
+import pool from '../db.js';
 
 // Create a new ticket
 router.post('/', async (req, res) => {

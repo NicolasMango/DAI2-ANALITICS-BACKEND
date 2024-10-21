@@ -1,6 +1,7 @@
 import express from 'express';
+import pool from '../db.js';
 const router = express.Router();
-import pool from '../db';
+
 
 // Create a new lugar
 router.post('/', async (req, res) => {

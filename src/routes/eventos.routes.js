@@ -3,78 +3,176 @@ import pool from '../db.js';
 
 const router = express.Router();
 
-// Create a new evento
+// Crear un nuevo evento
 router.post('/', async (req, res) => {
-  const { idLugar, fecha, CapacidadMaxima, idArtista, cantidadVendida } = req.body;
+  const {
+    idEvento,
+    fechaEvento,
+    direccion,
+    latitud,
+    longitud,
+    ciudad,
+    region,
+    pais,
+    nombreEvento,
+    capacidad,
+    duracion,
+    observaciones,
+    linkCompra,
+    artistas // Lista de IDs de artistas relacionados
+  } = req.body;
+
+  if (!idEvento || !fechaEvento || !direccion || !ciudad || !pais || !nombreEvento || !capacidad) {
+    return res.status(400).json({ error: 'Campos obligatorios no proporcionados' });
+  }
+
   try {
-    const result = await pool.query(
-      'INSERT INTO Evento (idLugar, fecha, CapacidadMaxima, idArtista, cantidadVendida) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [idLugar, fecha, CapacidadMaxima, idArtista, cantidadVendida]
+    // Insertar el evento
+    const eventoResult = await pool.query(
+      `INSERT INTO eventos (
+         idEvento, fechaEvento, direccion, latitud, longitud, ciudad, region, pais, nombreEvento, capacidad, duracion, observaciones, linkCompra
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      [idEvento, fechaEvento, direccion, latitud, longitud, ciudad, region, pais, nombreEvento, capacidad, duracion, observaciones, linkCompra]
     );
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error inserting evento' });
+
+    // Insertar relación evento-artista
+    if (artistas && artistas.length > 0) {
+      for (const idArtista of artistas) {
+        await pool.query(
+          `INSERT INTO evento_artista (idEvento, idArtista) VALUES ($1, $2)`,
+          [idEvento, idArtista]
+        );
+      }
+    }
+
+    res.status(201).json(eventoResult.rows[0]);
+  } catch (error) {
+    console.error('Error al crear el evento:', error);
+    res.status(500).json({ error: 'Error al crear el evento' });
   }
 });
 
-// Get all eventos
+// Obtener todos los eventos y sus artistas
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM Evento');
+    const result = await pool.query(`
+      SELECT e.*, 
+             ARRAY_AGG(a.nombreArtista) AS artistas
+      FROM eventos e
+      LEFT JOIN evento_artista ea ON e.idEvento = ea.idEvento
+      LEFT JOIN artistas a ON ea.idArtista = a.idArtista
+      GROUP BY e.idEvento
+    `);
+
     res.status(200).json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error fetching eventos' });
+  } catch (error) {
+    console.error('Error al obtener los eventos:', error);
+    res.status(500).json({ error: 'Error al obtener los eventos' });
   }
 });
 
-// Get an evento by ID
-router.get('/:id', async (req, res) => {
-  const { id } = req.params;
+// Obtener un evento por ID con sus artistas
+router.get('/:idEvento', async (req, res) => {
+  const { idEvento } = req.params;
+
   try {
-    const result = await pool.query('SELECT * FROM Evento WHERE idEvento = $1', [id]);
+    const result = await pool.query(`
+      SELECT e.*, 
+             ARRAY_AGG(a.nombreArtista) AS artistas
+      FROM eventos e
+      LEFT JOIN evento_artista ea ON e.idEvento = ea.idEvento
+      LEFT JOIN artistas a ON ea.idArtista = a.idArtista
+      WHERE e.idEvento = $1
+      GROUP BY e.idEvento
+    `, [idEvento]);
+
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Evento not found' });
+      return res.status(404).json({ error: 'Evento no encontrado' });
     }
+
     res.status(200).json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error fetching evento' });
+  } catch (error) {
+    console.error('Error al obtener el evento:', error);
+    res.status(500).json({ error: 'Error al obtener el evento' });
   }
 });
 
-// Update an evento by ID
-router.put('/:id', async (req, res) => {
-  const { id } = req.params;
-  const { idLugar, fecha, CapacidadMaxima, idArtista, cantidadVendida } = req.body;
+// Actualizar un evento y sus artistas
+router.put('/:idEvento', async (req, res) => {
+  const { idEvento } = req.params;
+  const {
+    fechaEvento,
+    direccion,
+    latitud,
+    longitud,
+    ciudad,
+    region,
+    pais,
+    nombreEvento,
+    capacidad,
+    duracion,
+    observaciones,
+    linkCompra,
+    artistas // Lista de IDs de artistas relacionados
+  } = req.body;
+
   try {
     const result = await pool.query(
-      'UPDATE Evento SET idLugar = $1, fecha = $2, CapacidadMaxima = $3, idArtista = $4, cantidadVendida = $5 WHERE idEvento = $6 RETURNING *',
-      [idLugar, fecha, CapacidadMaxima, idArtista, cantidadVendida, id]
+      `UPDATE eventos SET
+         fechaEvento = $1,
+         direccion = $2,
+         latitud = $3,
+         longitud = $4,
+         ciudad = $5,
+         region = $6,
+         pais = $7,
+         nombreEvento = $8,
+         capacidad = $9,
+         duracion = $10,
+         observaciones = $11,
+         linkCompra = $12
+       WHERE idEvento = $13 RETURNING *`,
+      [fechaEvento, direccion, latitud, longitud, ciudad, region, pais, nombreEvento, capacidad, duracion, observaciones, linkCompra, idEvento]
     );
+
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Evento not found' });
+      return res.status(404).json({ error: 'Evento no encontrado' });
     }
+
+    // Actualizar relación evento-artista
+    await pool.query(`DELETE FROM evento_artista WHERE idEvento = $1`, [idEvento]);
+
+    if (artistas && artistas.length > 0) {
+      for (const idArtista of artistas) {
+        await pool.query(
+          `INSERT INTO evento_artista (idEvento, idArtista) VALUES ($1, $2)`,
+          [idEvento, idArtista]
+        );
+      }
+    }
+
     res.status(200).json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error updating evento' });
+  } catch (error) {
+    console.error('Error al actualizar el evento:', error);
+    res.status(500).json({ error: 'Error al actualizar el evento' });
   }
 });
 
-// Delete an evento by ID
-router.delete('/:id', async (req, res) => {
-  const { id } = req.params;
+// Eliminar un evento y sus relaciones
+router.delete('/:idEvento', async (req, res) => {
+  const { idEvento } = req.params;
+
   try {
-    const result = await pool.query('DELETE FROM Evento WHERE idEvento = $1 RETURNING *', [id]);
+    const result = await pool.query(`DELETE FROM eventos WHERE idEvento = $1 RETURNING *`, [idEvento]);
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Evento not found' });
+      return res.status(404).json({ error: 'Evento no encontrado' });
     }
-    res.status(200).json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error deleting evento' });
+
+    res.status(200).json({ message: 'Evento eliminado correctamente', evento: result.rows[0] });
+  } catch (error) {
+    console.error('Error al eliminar el evento:', error);
+    res.status(500).json({ error: 'Error al eliminar el evento' });
   }
 });
+
 export default router;

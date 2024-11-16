@@ -8,19 +8,10 @@
   "host": "localhost:8000",
   "basePath": "/",
   "schemes": [
-    "http"
+    "https"
   ],
   "paths": {
-    "/ping": {
-      "get": {
-        "description": "",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
+    
     "/tickets/": {
       "post": {
         "description": "",
@@ -32,16 +23,16 @@
               "type": "object",
               "properties": {
                 "fechaCompra": {
-                  "example": "any"
+                  "example": "STRING"
                 },
                 "idEvento": {
-                  "example": "any"
+                  "example": "STRING"
                 },
                 "idComprador": {
-                  "example": "any"
+                  "example": "STRING"
                 },
                 "importe": {
-                  "example": "any"
+                  "example": "STRING"
                 }
               }
             }
@@ -107,16 +98,16 @@
               "type": "object",
               "properties": {
                 "fechaCompra": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "idEvento": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "idComprador": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "importe": {
-                  "example": "any"
+                  "example": "String"
                 }
               }
             }
@@ -168,19 +159,19 @@
               "type": "object",
               "properties": {
                 "Ciudad": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "pais": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "direcciones": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "cantidadEspectadores": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "sectores": {
-                  "example": "any"
+                  "example": "String"
                 }
               }
             }
@@ -246,19 +237,19 @@
               "type": "object",
               "properties": {
                 "Ciudad": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "pais": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "direcciones": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "cantidadEspectadores": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "sectores": {
-                  "example": "any"
+                  "example": "String"
                 }
               }
             }
@@ -310,16 +301,16 @@
               "type": "object",
               "properties": {
                 "generoMusical": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "edad": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "nombre": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "entradasVendidas": {
-                  "example": "any"
+                  "example": "String"
                 }
               }
             }
@@ -385,16 +376,16 @@
               "type": "object",
               "properties": {
                 "generoMusical": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "edad": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "nombre": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "entradasVendidas": {
-                  "example": "any"
+                  "example": "String"
                 }
               }
             }
@@ -446,19 +437,19 @@
               "type": "object",
               "properties": {
                 "idLugar": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "fecha": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "CapacidadMaxima": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "idArtista": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "cantidadVendida": {
-                  "example": "any"
+                  "example": "String"
                 }
               }
             }
@@ -524,19 +515,19 @@
               "type": "object",
               "properties": {
                 "idLugar": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "fecha": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "CapacidadMaxima": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "idArtista": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "cantidadVendida": {
-                  "example": "any"
+                  "example": "String"
                 }
               }
             }
@@ -588,16 +579,16 @@
               "type": "object",
               "properties": {
                 "fechaNacimiento": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "nombre": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "apellido": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "dni": {
-                  "example": "any"
+                  "example": "String"
                 }
               }
             }
@@ -663,16 +654,16 @@
               "type": "object",
               "properties": {
                 "fechaNacimiento": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "nombre": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "apellido": {
-                  "example": "any"
+                  "example": "String"
                 },
                 "dni": {
-                  "example": "any"
+                  "example": "String"
                 }
               }
             }

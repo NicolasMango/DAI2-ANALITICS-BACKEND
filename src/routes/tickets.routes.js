@@ -2,81 +2,109 @@ import express from 'express';
 const router = express.Router();
 import pool from '../db.js';
 
-// Create a new ticket
+// Crear un nuevo ticket
 router.post('/', async (req, res) => {
-  const { fechaCompra, idEvento, idComprador, importe } = req.body;
+  const { idEntrada, idPago, idEvento, idUsuario, nombreEvento, fechaEvento, sector, precioPago, promotor } = req.body;
+
+  if (!idEntrada || !idUsuario || !nombreEvento || !fechaEvento || !precioPago) {
+    return res.status(400).json({ error: 'idEntrada, idUsuario, nombreEvento, fechaEvento y precioPago son obligatorios' });
+  }
+
   try {
+    console.log('Valores recibidos:');
+    console.log('idEntrada:', idEntrada);
+    console.log('idPago:', idPago);
+    console.log('idEvento:', idEvento);
+    console.log('idUsuario:', idUsuario);
+    console.log('nombreEvento:', nombreEvento);
+    console.log('fechaEvento:', fechaEvento);
+    console.log('sector:', sector);
+    console.log('precioPago:', precioPago);
+    console.log('promotor:', promotor);
+  
     const result = await pool.query(
-      'INSERT INTO tickets (fechaCompra, idEvento, idComprador, importe) VALUES ($1, $2, $3, $4) RETURNING *',
-      [fechaCompra, idEvento, idComprador, importe]
+      `INSERT INTO tickets (idEntrada, idPago, idEvento, idUsuario, nombreEvento, fechaEvento, sector, precioPago, promotor) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [idEntrada, idPago, idEvento, idUsuario, nombreEvento, fechaEvento, sector, precioPago, promotor]
     );
     res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error inserting ticket' });
+  } catch (error) {
+    console.error('Error al crear el ticket:', error);
+    res.status(500).json({ error: 'Error al crear el ticket' });
   }
 });
 
-// Get all tickets
+// Obtener todos los tickets
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM tickets');
     res.status(200).json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error fetching tickets' });
+  } catch (error) {
+    console.error('Error al obtener los tickets:', error);
+    res.status(500).json({ error: 'Error al obtener los tickets' });
   }
 });
 
-// Get a ticket by ID
-router.get('/:id', async (req, res) => {
-  const { id } = req.params;
+// Obtener un ticket por idEntrada
+router.get('/:idEntrada', async (req, res) => {
+  const { idEntrada } = req.params;
+
   try {
-    const result = await pool.query('SELECT * FROM tickets WHERE ticket = $1', [id]);
+    const result = await pool.query('SELECT * FROM tickets WHERE idEntrada = $1', [idEntrada]);
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Ticket not found' });
+      return res.status(404).json({ error: 'Ticket no encontrado' });
     }
     res.status(200).json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error fetching ticket' });
+  } catch (error) {
+    console.error('Error al obtener el ticket:', error);
+    res.status(500).json({ error: 'Error al obtener el ticket' });
   }
 });
 
-// Update a ticket by ID
-router.put('/:id', async (req, res) => {
-  const { id } = req.params;
-  const { fechaCompra, idEvento, idComprador, importe } = req.body;
+// Actualizar un ticket por idEntrada
+router.put('/:idEntrada', async (req, res) => {
+  const { idEntrada } = req.params;
+  const { idPago, idEvento, idUsuario, nombreEvento, fechaEvento, sector, precioPago, promotor } = req.body;
+
   try {
     const result = await pool.query(
-      'UPDATE tickets SET fechaCompra = $1, idEvento = $2, idComprador = $3, importe = $4 WHERE ticket = $5 RETURNING *',
-      [fechaCompra, idEvento, idComprador, importe, id]
+      `UPDATE tickets SET 
+         idPago = $1, 
+         idEvento = $2, 
+         idUsuario = $3, 
+         nombreEvento = $4, 
+         fechaEvento = $5, 
+         sector = $6, 
+         precioPago = $7,
+         promotor = $8
+       WHERE idEntrada = $9 RETURNING *`,
+      [idPago, idEvento, idUsuario, nombreEvento, fechaEvento, sector, precioPago, promotor, idEntrada]
     );
+
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Ticket not found' });
+      return res.status(404).json({ error: 'Ticket no encontrado' });
     }
     res.status(200).json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error updating ticket' });
+  } catch (error) {
+    console.error('Error al actualizar el ticket:', error);
+    res.status(500).json({ error: 'Error al actualizar el ticket' });
   }
 });
 
-// Delete a ticket by ID
-router.delete('/:id', async (req, res) => {
-  const { id } = req.params;
+// Eliminar un ticket por idEntrada
+router.delete('/:idEntrada', async (req, res) => {
+  const { idEntrada } = req.params;
+
   try {
-    const result = await pool.query('DELETE FROM tickets WHERE ticket = $1 RETURNING *', [id]);
+    const result = await pool.query('DELETE FROM tickets WHERE idEntrada = $1 RETURNING *', [idEntrada]);
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Ticket not found' });
+      return res.status(404).json({ error: 'Ticket no encontrado' });
     }
-    res.status(200).json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error deleting ticket' });
+    res.status(200).json({ message: 'Ticket eliminado correctamente', ticket: result.rows[0] });
+  } catch (error) {
+    console.error('Error al eliminar el ticket:', error);
+    res.status(500).json({ error: 'Error al eliminar el ticket' });
   }
 });
-
 
 export default router;
-

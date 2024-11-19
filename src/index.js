@@ -6,6 +6,7 @@ import artistaRoutes from './routes/artistas.routes.js';
 import eventoRoutes from './routes/eventos.routes.js';
 import usuariosRoutes from './routes/usuarios.routes.js';
 import predecirRoutes from './routes/predecir.routes.js';
+import loginRoutes from './routes/login.routes.js';
 import pool from './db.js';
 
 const PORT = process.env.PORT || 8000;
@@ -25,6 +26,7 @@ app.use('/artistas', artistaRoutes);
 app.use('/eventos', eventoRoutes);
 app.use('/usuarios', usuariosRoutes);
 app.use('/predecir' , predecirRoutes);
+app.use('/login', loginRoutes);
 
 import swaggerUi from 'swagger-ui-express';
 import swaggerDocument from './swagger-output.json' assert {type :"json"};

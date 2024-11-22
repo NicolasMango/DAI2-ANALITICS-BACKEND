@@ -16,9 +16,9 @@ app.use(cors());
 app.options('*', cors());
 app.use(bodyParser.json());
 
-app.get("/ping", async (_req, res) => {
-  res.send({
-    message: "pong",
+app.get("/helth", async (_req, res) => {
+  res.status(200).send({
+    message: "ok",
   });
 });
 app.use('/tickets', ticketRoutes);

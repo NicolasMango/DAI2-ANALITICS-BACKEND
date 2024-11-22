@@ -13,8 +13,8 @@ router.post('/', async (req, res) => {
   
     try {
       const validationResponse = await axios.post('https://back.intranet.deliver.ar:3001/api/v1/login/token', {}, { headers: { Authorization: token } });
-      const sessionData = validationResponse.data;
-      res.status(200).json({ sessionData });
+      const user = validationResponse.data.sesionData;
+      res.status(200).json(user);
     } catch (error) {
       if (error.response && error.response.status === 401) {
         console.error('Invalid token', error);

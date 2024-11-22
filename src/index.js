@@ -16,9 +16,9 @@ app.use(cors());
 app.options('*', cors());
 app.use(bodyParser.json());
 
-app.get("/helth", async (_req, res) => {
+app.get("/health", async (_req, res) => {
   res.status(200).send({
-    message: "ok",
+    message: "Ok",
   });
 });
 app.use('/tickets', ticketRoutes);

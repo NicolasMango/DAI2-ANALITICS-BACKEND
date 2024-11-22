@@ -18,6 +18,7 @@ app.use(bodyParser.json());
 
 app.get("/health", async (_req, res) => {
   res.status(200).send({
+    ok: true,
     message: "Ok",
   });
 });

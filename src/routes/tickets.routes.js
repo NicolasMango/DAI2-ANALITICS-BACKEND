@@ -13,6 +13,7 @@ router.post("/", async (req, res) => {
     const confirmUrl = message.SubscribeURL;
 
     try {
+      console.log(message)
       console.log(
         `Confirmando suscripción para el tópico: ${message.TopicArn}`
       );

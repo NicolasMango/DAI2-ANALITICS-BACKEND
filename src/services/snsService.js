@@ -1,11 +1,12 @@
 import { SNSClient, SubscribeCommand, ListSubscriptionsByTopicCommand } from '@aws-sdk/client-sns';
 
 const snsClient = new SNSClient({
-    region: process.env.AWS_REGION || 'us-east-1',
+    region: 'us-east-1',
     credentials: {
-      accessKeyId: "ASIA4IRDM62L6YC3CQHV",
-      secretAccessKey: "PIkuNLJwWuh9Ese6a/6c6sbguA00mclj6qIog73R",
+      accessKeyId: 'ASIA4IRDM62L5U24IHAZ',
+      secretAccessKey: '+NyP9OZgIZ+YSixNvkgUx+t6SolS9MhrFn8SgyBb',
     },
+    logger:console
 });
 
 const topics = [
@@ -62,7 +63,16 @@ const subscribeToTopics = async () => {
       console.log(`Suscripción creada para el tópico ${arn}:`);
       console.log(`Subscription ARN: ${response.SubscriptionArn}`);
     } catch (error) {
+      console.log(error);
       console.error(`Error al suscribir el endpoint ${endpoint} al tópico ${arn}:`, error.message);
+      console.error('Detailed error:', {
+        message: error.message,
+        code: error.Code,
+        type: error.Type,
+        requestId: error.$metadata?.requestId,
+        statusCode: error.$metadata?.httpStatusCode,
+        stack: error.stack
+      });
     }
   }
 };

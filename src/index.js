@@ -8,6 +8,7 @@ import usuariosRoutes from './routes/usuarios.routes.js';
 import predecirRoutes from './routes/predecir.routes.js';
 import loginRoutes from './routes/login.routes.js';
 import subscribeToTopics from './services/snsService.js';
+import ejemplosubscribeToTopics from './services/ejemploService.js'       
 
 const PORT = process.env.PORT || 8000;
 
@@ -21,6 +22,22 @@ app.get("/health", async (_req, res) => {
     ok: true,
     message: "Ok",
   });
+});
+app.get("/subscribirEjemplo", async (_req, res) => {
+  try {
+    await ejemplosubscribeToTopics(); 
+    res.status(200).send({
+      ok: true,
+      message: "Subscriptions successful",
+    });
+  } catch (error) {
+    console.error('Error during subscription:', error.message);
+    res.status(500).send({
+      ok: false,
+      message: "Error subscribing to topics",
+      error: error.message,
+    });
+  }
 });
 
 app.get("/subscribir", async (_req, res) => {

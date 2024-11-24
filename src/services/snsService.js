@@ -37,8 +37,21 @@ const checkIfSubscriptionExists = async (topicArn, endpoint) => {
     return false;
   }
 };
+(async () => {
+    try {
+      // Resolver credenciales dinámicamente
+      const credentials = await snsClient.config.credentials();
+      console.log('Credenciales configuradas:', {
+        accessKeyId: credentials.accessKeyId,
+        secretAccessKey: credentials.secretAccessKey,
+      });
+    } catch (error) {
+      console.error('Error al obtener credenciales:', error.message);
+    }
+  })();
 
 const subscribeToTopics = async () => {
+
   for (const topic of topics) {
     const { arn, endpoint } = topic;
 

@@ -15,7 +15,18 @@ const PORT = process.env.PORT || 8000;
 const app = express();
 app.use(cors());
 app.options('*', cors());
-app.use(express.json());
+
+app.use((req, res, next) => {
+  const contentType = req.headers['content-type'] || '';
+
+  if (contentType.includes('application/json')) {
+    express.json()(req, res, next); // Procesa JSON
+  } else if (contentType.includes('text/plain')) {
+    express.text()(req, res, next); // Procesa texto plano
+  } else {
+    next(); // Pasa al siguiente middleware si el Content-Type no coincide
+  }
+});
 
 app.get("/health", async (_req, res) => {
   res.status(200).send({

@@ -8,7 +8,7 @@ router.post("/", async (req, res) => {
   console.log("Headers:", req.headers);
   console.log('Cuerpo recibido:', req.body);
   const messageType = req.headers["x-amz-sns-message-type"];
-  const message = req.body;
+  const message = JSON.parse(req.body);
   console.log('Tipo de mensaje:', messageType);
   if (messageType === "SubscriptionConfirmation") {
     const confirmUrl = message.SubscribeURL;

@@ -5,6 +5,7 @@ import pool from "../db.js";
 
 // Crear un nuevo ticket
 router.post("/", async (req, res) => {
+  console.log("Headers:", req.headers);
   console.log('Cuerpo recibido:', req.body);
   const messageType = req.headers["x-amz-sns-message-type"];
   const message = req.body;

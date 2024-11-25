@@ -9,11 +9,13 @@ import predecirRoutes from './routes/predecir.routes.js';
 import loginRoutes from './routes/login.routes.js';
 import subscribeToTopics from './services/snsService.js';
 import ejemplosubscribeToTopics from './services/ejemploService.js'       
+import cookieParser from "cookie-parser";
 
 const PORT = process.env.PORT || 8000;
 
 const app = express();
-app.use(cors());
+app.use(cors({ credentials: true }));
+app.use(cookieParser());
 app.options('*', cors());
 
 app.use((req, res, next) => {
@@ -74,10 +76,10 @@ app.use('/usuarios', usuariosRoutes);
 app.use('/predecir' , predecirRoutes);
 app.use('/login', loginRoutes);
 
-import swaggerUi from 'swagger-ui-express';
-import swaggerDocument from './swagger-output.json' assert {type :"json"};
+// import swaggerUi from 'swagger-ui-express';
+// import swaggerDocument from './swagger-output.json' assert {type :"json"};
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 
 app.listen(PORT, () => {

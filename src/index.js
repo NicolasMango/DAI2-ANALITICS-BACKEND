@@ -74,7 +74,13 @@ app.use('/artistas', artistaRoutes);
 app.use('/eventos', eventoRoutes);
 app.use('/usuarios', usuariosRoutes);
 app.use('/predecir' , predecirRoutes);
-app.use('/login', loginRoutes);
+
+const loginCorsOptions = {
+  origin: 'https://analytics.deliver.ar',
+  credentials: true,
+};
+
+app.use('/login', cors(loginCorsOptions), loginRoutes);
 
 // import swaggerUi from 'swagger-ui-express';
 // import swaggerDocument from './swagger-output.json' assert {type :"json"};

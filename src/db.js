@@ -5,7 +5,7 @@ const { Pool } = pkg;
 // PARA AWS 
 const pool = new Pool({
   user: 'postgres',
-  host: 'database-1.cagbs4kerxaw.us-east-1.rds.amazonaws.com',
+  host: 'analiticadb.cagbs4kerxaw.us-east-1.rds.amazonaws.com',
   database: 'postgres',
   password: 'TpVi3rnes0224!',
   port: 5432,

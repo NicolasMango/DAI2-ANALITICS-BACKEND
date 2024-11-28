@@ -22,7 +22,7 @@ app.use((req, res, next) => {
   const contentType = req.headers['content-type'] || '';
 
   if (contentType.includes('application/json')) {
-    express.json()(req, res, next); // Procesa JSON
+    express.json()(req, res, next); 
   } else if (contentType.includes('text/plain')) {
     express.text()(req, res, next); // Procesa texto plano
   } else {

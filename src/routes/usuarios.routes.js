@@ -1,8 +1,8 @@
 import express from "express";
-import fetch from "node-fetch";
+const router = express.Router();
+import fetch from 'node-fetch'; 
 import pool from "../db.js";
 
-const router = express.Router();
 
 // Crear un nuevo usuario o manejar eventos relacionados
 router.post("/", async (req, res) => {

@@ -1,8 +1,8 @@
 import express from "express";
-import fetch from "node-fetch";
+const router = express.Router();
+import fetch from 'node-fetch'; 
 import pool from "../db.js";
 
-const router = express.Router();
 
 // Crear o manejar eventos relacionados con artistas
 router.post("/", async (req, res) => {

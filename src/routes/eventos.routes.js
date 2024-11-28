@@ -1,7 +1,7 @@
-import express from 'express';
-import pool from '../db.js';
-
+import express from "express";
 const router = express.Router();
+import fetch from 'node-fetch'; 
+import pool from "../db.js";
 
 // Crear un nuevo evento
 router.post("/", async (req, res) => {

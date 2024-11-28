@@ -64,6 +64,7 @@ async function ejemplosubscribeToTopics() {
           console.log(
             `Suscripción exitosa: ${subscription.SubscriptionArn} para el tópico: ${topicArn}`
           );
+          console.log('para el endpoint ', matchingEndpoint.endpoint )
         } catch (err) {
           console.error(`Error suscribiéndose al tópico ${topicArn}:`, err.message);
         }

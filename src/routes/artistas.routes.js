@@ -174,22 +174,22 @@ router.delete("/:idArtist", async (req, res) => {
 
 
 // Funciones auxiliares para el registro de logs
-async function logError(operation, message, data) {
+async function logError( message, data) {
   try {
     await pool.query(
-      `INSERT INTO log_eventos (status, operation, message, data) VALUES ($1, $2, $3, $4)`,
-      ["error", operation, message, JSON.stringify(data)]
+      `INSERT INTO log_eventos (status, message, data) VALUES ($1, $2, $3, $4)`,
+      ["error", message, JSON.stringify(data)]
     );
   } catch (logError) {
     console.error("Error al registrar el log:", logError);
   }
 }
 
-async function logSuccess(operation, message, data) {
+async function logSuccess( message, data) {
   try {
     await pool.query(
-      `INSERT INTO log_eventos (status, operation, message, data) VALUES ($1, $2, $3, $4)`,
-      ["success", operation, message, JSON.stringify(data)]
+      `INSERT INTO log_eventos (status, message, data) VALUES ($1, $2, $3, $4)`,
+      ["success", message, JSON.stringify(data)]
     );
   } catch (logError) {
     console.error("Error al registrar el log de éxito:", logError);

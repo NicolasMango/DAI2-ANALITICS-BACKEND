@@ -6,111 +6,171 @@ import pool from "../db.js";
 // Crear un nuevo ticket
 router.post("/", async (req, res) => {
   console.log("Headers:", req.headers);
-  console.log('Cuerpo recibido:', req.body);
+  console.log("Cuerpo recibido:", req.body);
+
   const messageType = req.headers["x-amz-sns-message-type"];
   const message = JSON.parse(req.body);
-  console.log('Tipo de mensaje:', messageType);
+  console.log("Tipo de mensaje:", messageType);
+
+  // Confirmar suscripción
   if (messageType === "SubscriptionConfirmation") {
     const confirmUrl = message.SubscribeURL;
 
     try {
-      console.log(message)
-      console.log(
-        `Confirmando suscripción para el tópico: ${message.TopicArn}`
-      );
-      await fetch(confirmUrl); // Realiza un GET al SubscribeURL para confirmar
+      console.log(`Confirmando suscripción para el tópico: ${message.TopicArn}`);
+      await fetch(confirmUrl);
       console.log("Suscripción confirmada exitosamente.");
     } catch (error) {
       console.error(`Error al confirmar la suscripción: ${error.message}`);
       return res.status(500).send("Error al confirmar la suscripción");
     }
   }
-
-  // Manejar notificaciones
-  if (messageType === "Notification") {
-    console.log("Notificación recibida:", message);
-    // Procesa la notificación si es necesario
-    const {
-      idEntrada,
-      idPago,
-      idEvento,
-      idUsuario,
-      nombreEvento,
-      fechaEvento,
-      sector,
-      precioPago,
-      promotor,
-    } = req.body;
+// Manejar notificaciones
+if (messageType === "Notification") {
+  console.log("Notificación recibida:", message);
   
-    if (
-      !idEntrada ||
-      !idUsuario ||
-      !nombreEvento ||
-      !fechaEvento ||
-      !precioPago
-    ) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "idEntrada, idUsuario, nombreEvento, fechaEvento y precioPago son obligatorios",
-        });
-    }
+  const { MessageId: messageId, source } = message; // Obtener messageId y source
+
+  if (source !== "tickets-module" || detailType !== "ticket.purchase") {
+      console.error("El mensaje no cumple con los valores esperados.");
+      await logError(
+        "Notification",
+        `El mensaje no tiene los valores esperados. Source: ${source}, Detail-Type: ${detailType}`,
+        req.body
+      );
+      return res.status(400).json({ error: "El mensaje no cumple con los valores esperados" });
+  }
+  // Extraer datos del cuerpo de la solicitud
+  const {
+    idPago,
+    estado,
+    idUsuario,
+    idEvento,
+    precioTotal,
+    estadio,
+    cantidadSectorGeneral,
+    cantidadSectorVip,
+    cantidadSectorIzquierda,
+    cantidadSectorDerecha,
+  } = req.body;
+
+  // Validar que los campos requeridos estén presentes
+  const errores = [];
+  if (!idPago) errores.push("El campo 'idPago' es obligatorio.");
+  if (!idUsuario) errores.push("El campo 'idUsuario' es obligatorio.");
+  if (!idEvento) errores.push("El campo 'idEvento' es obligatorio.");
+  if (!precioTotal) {
+    errores.push("El campo 'precioTotal' es obligatorio.");
+  } else if (isNaN(precioTotal.$numberInt) || precioTotal.$numberInt <= 0) {
+    errores.push("El campo 'precioTotal' debe ser un número mayor a 0.");
+  }
+
+  // Si hay errores, registrar en la tabla de errores y responder
+  if (errores.length > 0) {
+    const errorMessage = errores.join(" ");
+    console.error("Errores de validación:", errorMessage);
 
     try {
-      console.log("Valores recibidos:");
-      console.log("idEntrada:", idEntrada);
-      console.log("idPago:", idPago);
-      console.log("idEvento:", idEvento);
-      console.log("idUsuario:", idUsuario);
-      console.log("nombreEvento:", nombreEvento);
-      console.log("fechaEvento:", fechaEvento);
-      console.log("sector:", sector);
-      console.log("precioPago:", precioPago);
-      console.log("promotor:", promotor);
-
-      const result = await pool.query(
-        `INSERT INTO tickets (idEntrada, idPago, idEvento, idUsuario, nombreEvento, fechaEvento, sector, precioPago, promotor) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-        [
-          idEntrada,
-          idPago,
-          idEvento,
-          idUsuario,
-          nombreEvento,
-          fechaEvento,
-          sector,
-          precioPago,
-          promotor,
-        ]
+      await pool.query(
+        `INSERT INTO log_eventos (message_id, source, status, message, data) VALUES ($1, $2, $3, $4, $5)`,
+        [messageId || null, source || null, "error", errorMessage, JSON.stringify(req.body)]
       );
-      res.status(201).json(result.rows[0]);
-    } catch (error) {
-      console.error("Error al crear el ticket:", error);
-      res.status(500).json({ error: "Error al crear el ticket" });
+    } catch (logError) {
+      console.error("Error al registrar el log:", logError);
     }
-  }
-});
 
+    return res.status(400).json({ error: errorMessage });
+  }
+
+  // Intentar insertar en la tabla principal
+  try {
+    console.log("Valores recibidos:", {
+      idPago,
+      estado,
+      idUsuario,
+      idEvento,
+      precioTotal,
+      estadio,
+      cantidadSectorGeneral,
+      cantidadSectorVip,
+      cantidadSectorIzquierda,
+      cantidadSectorDerecha,
+    });
+
+    const result = await pool.query(
+      `INSERT INTO tickets (
+        id_ticket,
+        estado,
+        id_usuario,
+        id_evento,
+        precio_total,
+        estadio,
+        cantidad_sector_general,
+        cantidad_sector_vip,
+        cantidad_sector_izquierda,
+        cantidad_sector_derecha
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [
+        idPago,
+        estado,
+        idUsuario,
+        idEvento,
+        precioTotal.$numberInt,
+        estadio.$numberInt,
+        cantidadSectorGeneral.$numberInt,
+        cantidadSectorVip.$numberInt,
+        cantidadSectorIzquierda.$numberInt,
+        cantidadSectorDerecha.$numberInt,
+      ]
+    );
+
+    // Registrar el éxito en la tabla de logs
+    try {
+      await pool.query(
+        `INSERT INTO log_eventos (message_id, source, status, message, data) VALUES ($1, $2, $3, $4, $5)`,
+        [messageId || null, source || null, "success", "Ticket registrado con éxito", JSON.stringify(result.rows[0])]
+      );
+    } catch (logError) {
+      console.error("Error al registrar el log de éxito:", logError);
+    }
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error("Error al registrar el Ticket:", error);
+
+    // Registrar el error en la tabla de logs
+    try {
+      await pool.query(
+        `INSERT INTO log_eventos (message_id, source, status, message, data) VALUES ($1, $2, $3, $4, $5)`,
+        [messageId || null, source || null, "error", "Error al registrar el Ticket", JSON.stringify(req.body)]
+      );
+    } catch (logError) {
+      console.error("Error al registrar el log:", logError);
+    }
+
+    res.status(500).json({ error: "Error al registrar el Ticket" });
+  }
+}
+});
 // Obtener todos los tickets
 router.get("/", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM tickets");
     res.status(200).json(result.rows);
   } catch (error) {
-    console.error("Error al obtener los tickets:", error);
+    console.error("Error al obtener los tickets :", error);
     res.status(500).json({ error: "Error al obtener los tickets" });
   }
 });
 
-// Obtener un ticket por idEntrada
-router.get("/:idEntrada", async (req, res) => {
-  const { idEntrada } = req.params;
+// Obtener un pago por idPago
+router.get("/:idPago", async (req, res) => {
+  const { idPago } = req.params;
 
   try {
     const result = await pool.query(
-      "SELECT * FROM tickets WHERE idEntrada = $1",
-      [idEntrada]
+      "SELECT * FROM tickets WHERE id_ticket = $1",
+      [idPago]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Ticket no encontrado" });
@@ -122,42 +182,45 @@ router.get("/:idEntrada", async (req, res) => {
   }
 });
 
-// Actualizar un ticket por idEntrada
-router.put("/:idEntrada", async (req, res) => {
-  const { idEntrada } = req.params;
+// Actualizar un pago por idPago
+router.put("/:idPago", async (req, res) => {
+  const { idPago } = req.params;
   const {
-    idPago,
-    idEvento,
+    estado,
     idUsuario,
-    nombreEvento,
-    fechaEvento,
-    sector,
-    precioPago,
-    promotor,
+    idEvento,
+    precioTotal,
+    estadio,
+    cantidadSectorGeneral,
+    cantidadSectorVip,
+    cantidadSectorIzquierda,
+    cantidadSectorDerecha,
   } = req.body;
 
   try {
     const result = await pool.query(
       `UPDATE tickets SET 
-         idPago = $1, 
-         idEvento = $2, 
-         idUsuario = $3, 
-         nombreEvento = $4, 
-         fechaEvento = $5, 
-         sector = $6, 
-         precioPago = $7,
-         promotor = $8
-       WHERE idEntrada = $9 RETURNING *`,
+         estado = $1, 
+         id_usuario = $2, 
+         id_evento = $3, 
+         precio_total = $4, 
+         estadio = $5, 
+         cantidad_sector_general = $6, 
+         cantidad_sector_vip = $7,
+         cantidad_sector_izquierda = $8,
+         cantidad_sector_derecha = $9
+       WHERE id_ticket = $10 RETURNING *`,
       [
-        idPago,
-        idEvento,
+        estado,
         idUsuario,
-        nombreEvento,
-        fechaEvento,
-        sector,
-        precioPago,
-        promotor,
-        idEntrada,
+        idEvento,
+        precioTotal.$numberInt,
+        estadio.$numberInt,
+        cantidadSectorGeneral.$numberInt,
+        cantidadSectorVip.$numberInt,
+        cantidadSectorIzquierda.$numberInt,
+        cantidadSectorDerecha.$numberInt,
+        idPago,
       ]
     );
 
@@ -171,24 +234,22 @@ router.put("/:idEntrada", async (req, res) => {
   }
 });
 
-// Eliminar un ticket por idEntrada
-router.delete("/:idEntrada", async (req, res) => {
-  const { idEntrada } = req.params;
+// Eliminar un pago por idPago
+router.delete("/:idPago", async (req, res) => {
+  const { idPago } = req.params;
 
   try {
     const result = await pool.query(
-      "DELETE FROM tickets WHERE idEntrada = $1 RETURNING *",
-      [idEntrada]
+      "DELETE FROM tickets WHERE id_ticket = $1 RETURNING *",
+      [idPago]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Ticket no encontrado" });
     }
-    res
-      .status(200)
-      .json({
-        message: "Ticket eliminado correctamente",
-        ticket: result.rows[0],
-      });
+    res.status(200).json({
+      message: "Ticket eliminado correctamente",
+      pago: result.rows[0],
+    });
   } catch (error) {
     console.error("Error al eliminar el ticket:", error);
     res.status(500).json({ error: "Error al eliminar el ticket" });

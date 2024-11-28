@@ -1,99 +1,174 @@
-import express from 'express';
-import pool from '../db.js';
+import express from "express";
+import fetch from "node-fetch";
+import pool from "../db.js";
 
 const router = express.Router();
-// Crear un nuevo artista
-router.post('/', async (req, res) => {
-  const { idArtista, nombreArtista, legalOwner, bio, generos } = req.body;
 
-  if (!idArtista || !nombreArtista || !legalOwner) {
-    return res.status(400).json({ error: 'idArtista, nombreArtista y legalOwner son obligatorios' });
+// Crear o manejar eventos relacionados con artistas
+router.post("/", async (req, res) => {
+  console.log("Headers:", req.headers);
+  console.log("Cuerpo recibido:", req.body);
+
+  const messageType = req.headers["x-amz-sns-message-type"];
+  const message = req.body;
+
+  if (!messageType) {
+    return res.status(400).json({ error: "Falta el header 'x-amz-sns-message-type'" });
   }
 
-  try {
-    const result = await pool.query(
-      `INSERT INTO artistas (idArtista, nombreArtista, legalOwner, bio, generos)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [idArtista, nombreArtista, legalOwner, bio, generos || null]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (error) {
-    console.error('Error al crear el artista:', error);
-    res.status(500).json({ error: 'Error al crear el artista' });
+  // Manejo de SubscriptionConfirmation
+  if (messageType === "SubscriptionConfirmation") {
+    const confirmUrl = message.SubscribeURL;
+    try {
+      console.log(`Confirmando suscripción para el tópico: ${message.TopicArn}`);
+      await fetch(confirmUrl);
+      console.log("Suscripción confirmada exitosamente.");
+      res.status(200).send("Suscripción confirmada exitosamente.");
+    } catch (error) {
+      console.error(`Error al confirmar la suscripción: ${error.message}`);
+      return res.status(500).send("Error al confirmar la suscripción");
+    }
+  }
+
+  // Manejo de Notification
+  if (messageType === "Notification") {
+    console.log("Notificación recibida:", message);
+
+    // Validación del cuerpo del mensaje
+    const {
+      idArtist,
+      artisticName,
+      legalOwner,
+      bio,
+      socialMediaIds,
+      genreIds,
+      imageUrls,
+    } = message;
+
+    const { MessageId: messageId, source } = message;
+
+    const errores = [];
+    if (!idArtist) errores.push("El campo 'idArtista' es obligatorio.");
+    if (!artisticName) errores.push("El campo 'artisticName' es obligatorio.");
+    if (!legalOwner) errores.push("El campo 'legalOwner' es obligatorio.");
+    if (!socialMediaIds || !Array.isArray(socialMediaIds)) {
+      errores.push("El campo 'socialMediaIds' debe ser un array.");
+    }
+    if (!genreIds || !Array.isArray(genreIds)) {
+      errores.push("El campo 'genreIds' debe ser un array.");
+    }
+    if (!imageUrls || !Array.isArray(imageUrls)) {
+      errores.push("El campo 'imageUrls' debe ser un array.");
+    }
+
+    // Log y respuesta en caso de errores
+    if (errores.length > 0) {
+      const errorMessage = errores.join(" ");
+      console.error("Errores de validación:", errorMessage);
+      try {
+        await pool.query(
+          `INSERT INTO log_eventos (message_id, source, status, message, data) VALUES ($1, $2, $3, $4, $5)`,
+          [messageId || null, source || null, "error", errorMessage, JSON.stringify(message)]
+        );
+      } catch (logError) {
+        console.error("Error al registrar el log:", logError);
+      }
+      return res.status(400).json({ error: errorMessage });
+    }
+
+    // Intentar insertar o actualizar el artista
+    try {
+      const result = await pool.query(
+        `INSERT INTO artistas (
+          id_artista,
+          artistic_name,
+          legal_owner,
+          bio,
+          social_media_ids,
+          genre_ids,
+          image_urls
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING *`,
+        [
+          idArtist,
+          artisticName,
+          legalOwner,
+          bio,
+          JSON.stringify(socialMediaIds),
+          JSON.stringify(genreIds),
+          JSON.stringify(imageUrls),
+        ]
+      );
+
+      // Log de éxito
+      try {
+        await pool.query(
+          `INSERT INTO log_eventos (message_id, source, status, message, data) VALUES ($1, $2, $3, $4, $5)`,
+          [messageId || null, source || null, "success", "Artista creado o actualizado con éxito", JSON.stringify(result.rows[0])]
+        );
+      } catch (logError) {
+        console.error("Error al registrar el log de éxito:", logError);
+      }
+
+      res.status(201).json(result.rows[0]);
+    } catch (error) {
+      console.error("Error al procesar el artista:", error);
+
+      // Log del error
+      try {
+        await pool.query(
+          `INSERT INTO log_eventos (message_id, source, status, message, data) VALUES ($1, $2, $3, $4, $5)`,
+          [messageId || null, source || null, "error", "Error al procesar el artista", JSON.stringify(message)]
+        );
+      } catch (logError) {
+        console.error("Error al registrar el log:", logError);
+      }
+
+      res.status(500).json({ error: "Error al procesar el artista" });
+    }
   }
 });
 
 // Obtener todos los artistas
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM artistas');
+    const result = await pool.query("SELECT * FROM artistas");
     res.status(200).json(result.rows);
   } catch (error) {
-    console.error('Error al obtener los artistas:', error);
-    res.status(500).json({ error: 'Error al obtener los artistas' });
+    console.error("Error al obtener los artistas:", error);
+    res.status(500).json({ error: "Error al obtener los artistas" });
   }
 });
 
 // Obtener un artista por ID
-router.get('/:idArtista', async (req, res) => {
-  const { idArtista } = req.params;
+router.get("/:idArtist", async (req, res) => {
+  const { idArtist } = req.params;
 
   try {
-    const result = await pool.query('SELECT * FROM artistas WHERE idArtista = $1', [idArtista]);
+    const result = await pool.query("SELECT * FROM artistas WHERE id_artista = $1", [idArtist]);
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Artista no encontrado' });
+      return res.status(404).json({ error: "Artista no encontrado" });
     }
     res.status(200).json(result.rows[0]);
   } catch (error) {
-    console.error('Error al obtener el artista:', error);
-    res.status(500).json({ error: 'Error al obtener el artista' });
-  }
-});
-
-// Actualizar un artista por ID
-router.put('/:idArtista', async (req, res) => {
-  const { idArtista } = req.params;
-  const { nombreArtista, legalOwner, bio, generos } = req.body;
-
-  if (!nombreArtista || !legalOwner) {
-    return res.status(400).json({ error: 'nombreArtista y legalOwner son obligatorios' });
-  }
-
-  try {
-    const result = await pool.query(
-      `UPDATE artistas SET 
-         nombreArtista = $1, 
-         legalOwner = $2, 
-         bio = $3, 
-         generos = $4
-       WHERE idArtista = $5 RETURNING *`,
-      [nombreArtista, legalOwner, bio, generos || null, idArtista]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Artista no encontrado' });
-    }
-
-    res.status(200).json(result.rows[0]);
-  } catch (error) {
-    console.error('Error al actualizar el artista:', error);
-    res.status(500).json({ error: 'Error al actualizar el artista' });
+    console.error("Error al obtener el artista:", error);
+    res.status(500).json({ error: "Error al obtener el artista" });
   }
 });
 
 // Eliminar un artista por ID
-router.delete('/:idArtista', async (req, res) => {
-  const { idArtista } = req.params;
+router.delete("/:idArtist", async (req, res) => {
+  const { idArtist } = req.params;
 
   try {
-    const result = await pool.query('DELETE FROM artistas WHERE idArtista = $1 RETURNING *', [idArtista]);
+    const result = await pool.query("DELETE FROM artistas WHERE id_artista = $1 RETURNING *", [idArtist]);
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Artista no encontrado' });
+      return res.status(404).json({ error: "Artista no encontrado" });
     }
-    res.status(200).json({ message: 'Artista eliminado correctamente', artista: result.rows[0] });
+    res.status(200).json({ message: "Artista eliminado correctamente", artist: result.rows[0] });
   } catch (error) {
-    console.error('Error al eliminar el artista:', error);
-    res.status(500).json({ error: 'Error al eliminar el artista' });
+    console.error("Error al eliminar el artista:", error);
+    res.status(500).json({ error: "Error al eliminar el artista" });
   }
 });
 

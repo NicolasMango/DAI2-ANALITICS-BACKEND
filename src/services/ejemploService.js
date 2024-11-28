@@ -13,6 +13,21 @@ AWS.config.update({
 // Crear instancia de SNS
 const sns = new AWS.SNS();
  
+const topicEndpointMap = [
+    {
+      arn: "arn:aws:sns:us-east-1:442042507897:ticket-topic",
+      endpoint: "https://analyticsapi.deliver.ar/api/tickets",
+    },
+    {
+      arn: "arn:aws:sns:us-east-1:442042507897:artist-topic",
+      endpoint: "https://analyticsapi.deliver.ar/api/artistas",
+    },
+    {
+      arn: "arn:aws:sns:us-east-1:442042507897:recital-topic",
+      endpoint: "https://analyticsapi.deliver.ar/api/eventos",
+    },
+  ];
+
 async function ejemplosubscribeToTopics() {
   try {
     // Obtener tópicos dinámicos desde el endpoint
@@ -25,25 +40,34 @@ async function ejemplosubscribeToTopics() {
     }
     console.log(process.env.AWS_ACCESS_KEY_ID);
     console.log(process.env.AWS_SECRET_ACCESS_KEY);
-    const endpointUrl = 'https://analyticsapi.deliver.ar/api/tickets'; // Cambia al endpoint de tu backend
  
     for (const topic of topics) {
-      const topicArn = topic.TopicArn;
- 
-      // Crear suscripción HTTPS
-      const params = {
-        Protocol: 'https', // Protocolo HTTPS
-        TopicArn: topicArn,
-        Endpoint: endpointUrl, // URL de tu endpoint HTTPS
-      };
- 
-      try {
-        const subscription = await sns.subscribe(params).promise();
-        console.log(`Suscripción exitosa: ${subscription.SubscriptionArn} para el tópico: ${topicArn}`);
-      } catch (err) {
-        console.error(`Error suscribiéndose al tópico ${topicArn}:`, err.message);
+        const topicArn = topic.TopicArn;
+  
+        // Buscar el endpoint correspondiente al TopicArn
+        const matchingEndpoint = topicEndpointMap.find((item) => item.arn === topicArn);
+  
+        if (!matchingEndpoint) {
+          console.warn(`No se encontró un endpoint para el tópico ${topicArn}.`);
+          continue;
+        }
+  
+        // Crear suscripción HTTPS
+        const params = {
+          Protocol: "https", // Protocolo HTTPS
+          TopicArn: topicArn,
+          Endpoint: matchingEndpoint.endpoint, // Endpoint correspondiente
+        };
+  
+        try {
+          const subscription = await sns.subscribe(params).promise();
+          console.log(
+            `Suscripción exitosa: ${subscription.SubscriptionArn} para el tópico: ${topicArn}`
+          );
+        } catch (err) {
+          console.error(`Error suscribiéndose al tópico ${topicArn}:`, err.message);
+        }
       }
-    }
   } catch (error) {
     console.error('Error obteniendo la lista de tópicos:', error.message);
   }

@@ -5,41 +5,41 @@ import pool from "../db.js";
 
 // Crear un nuevo evento
 router.post("/", async (req, res) => {
-  console.log("Headers:", req.headers);
-  console.log("Cuerpo recibido:", req.body);
+  console.log("Recitales - Headers:", req.headers);
+  console.log("Recitales - Cuerpo recibido:", req.body);
   const message = req.body
   const messageType = req.headers["x-amz-sns-message-type"];
   //const message = JSON.parse(req.body);
 
-  console.log("Tipo de mensaje:", messageType);
+  console.log("Recitales - Tipo de mensaje:", messageType);
 
   // Manejo de SubscriptionConfirmation
   if (messageType === "SubscriptionConfirmation") {
     const confirmUrl = message.SubscribeURL;
     try {
-      console.log(`Confirmando suscripción para el tópico: ${message.TopicArn}`);
+      console.log(`Recitales - Confirmando suscripción para el tópico: ${message.TopicArn}`);
       await fetch(confirmUrl);
-      console.log("Suscripción confirmada exitosamente.");
-      res.status(200).send("Suscripción confirmada exitosamente.");
+      console.log("Recitales - Suscripción confirmada exitosamente.");
+      res.status(200).send("Recitales - Suscripción confirmada exitosamente.");
     } catch (error) {
-      console.error(`Error al confirmar la suscripción: ${error.message}`);
-      return res.status(500).send("Error al confirmar la suscripción");
+      console.error(`Recitales - Error al confirmar la suscripción: ${error.message}`);
+      return res.status(500).send("Recitales - Error al confirmar la suscripción");
     }
   }
 
   // Manejo de Notification
   if (messageType === "Notification") {
-    console.log("Notificación recibida:", message);
+    console.log("Recitales - Notificación recibida:", message);
 
     const { source, "detail-type": detailType } = message;
     if (source !== "artist-module" || detailType !== "recital.created") {
-      console.error("El mensaje no cumple con los valores esperados.");
+      console.error("Recitales - El mensaje no cumple con los valores esperados.");
       await logError(
         "Notification",
         `El mensaje no tiene los valores esperados. Source: ${source}, Detail-Type: ${detailType}`,
         req.body
       );
-      return res.status(400).json({ error: "El mensaje no cumple con los valores esperados" });
+      return res.status(400).json({ error: "Recitales - El mensaje no cumple con los valores esperados" });
     }
     // Extraer datos del cuerpo
     const {
@@ -313,4 +313,26 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+// Funciones auxiliares para el registro de logs
+async function logError(operation, message, data) {
+  try {
+    await pool.query(
+      `INSERT INTO log_eventos (status, operation, message, data) VALUES ($1, $2, $3, $4)`,
+      ["error", operation, message, JSON.stringify(data)]
+    );
+  } catch (logError) {
+    console.error("Error al registrar el log:", logError);
+  }
+}
+
+async function logSuccess(operation, message, data) {
+  try {
+    await pool.query(
+      `INSERT INTO log_eventos (status, operation, message, data) VALUES ($1, $2, $3, $4)`,
+      ["success", operation, message, JSON.stringify(data)]
+    );
+  } catch (logError) {
+    console.error("Error al registrar el log de éxito:", logError);
+  }
+}
 export default router;

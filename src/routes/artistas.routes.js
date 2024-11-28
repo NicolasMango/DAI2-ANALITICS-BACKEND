@@ -6,8 +6,8 @@ import pool from "../db.js";
 
 // Crear o manejar eventos relacionados con artistas
 router.post("/", async (req, res) => {
-  console.log("Headers:", req.headers);
-  console.log("Cuerpo recibido:", req.body);
+  console.log("Artistas - Headers:", req.headers);
+  console.log("Artistas - Cuerpo recibido:", req.body);
 
   const messageType = req.headers["x-amz-sns-message-type"];
   const message = req.body;
@@ -20,19 +20,19 @@ router.post("/", async (req, res) => {
   if (messageType === "SubscriptionConfirmation") {
     const confirmUrl = message.SubscribeURL;
     try {
-      console.log(`Confirmando suscripción para el tópico: ${message.TopicArn}`);
+      console.log(`Artistas - Confirmando suscripción para el tópico: ${message.TopicArn}`);
       await fetch(confirmUrl);
-      console.log("Suscripción confirmada exitosamente.");
-      res.status(200).send("Suscripción confirmada exitosamente.");
+      console.log("Artistas - Suscripción confirmada exitosamente.");
+      res.status(200).send("Artistas - Suscripción confirmada exitosamente.");
     } catch (error) {
-      console.error(`Error al confirmar la suscripción: ${error.message}`);
+      console.error(`Artistas - Error al confirmar la suscripción: ${error.message}`);
       return res.status(500).send("Error al confirmar la suscripción");
     }
   }
 
   // Manejo de Notification
   if (messageType === "Notification") {
-    console.log("Notificación recibida:", message);
+    console.log("Artistas - Notificación recibida:", message);
 
     // Validación del cuerpo del mensaje
     const {
@@ -171,5 +171,29 @@ router.delete("/:idArtist", async (req, res) => {
     res.status(500).json({ error: "Error al eliminar el artista" });
   }
 });
+
+
+// Funciones auxiliares para el registro de logs
+async function logError(operation, message, data) {
+  try {
+    await pool.query(
+      `INSERT INTO log_eventos (status, operation, message, data) VALUES ($1, $2, $3, $4)`,
+      ["error", operation, message, JSON.stringify(data)]
+    );
+  } catch (logError) {
+    console.error("Error al registrar el log:", logError);
+  }
+}
+
+async function logSuccess(operation, message, data) {
+  try {
+    await pool.query(
+      `INSERT INTO log_eventos (status, operation, message, data) VALUES ($1, $2, $3, $4)`,
+      ["success", operation, message, JSON.stringify(data)]
+    );
+  } catch (logError) {
+    console.error("Error al registrar el log de éxito:", logError);
+  }
+}
 
 export default router;

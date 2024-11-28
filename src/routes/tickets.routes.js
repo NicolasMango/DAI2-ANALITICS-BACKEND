@@ -5,40 +5,40 @@ import pool from "../db.js";
 
 // Crear un nuevo ticket
 router.post("/", async (req, res) => {
-  console.log("Headers:", req.headers);
-  console.log("Cuerpo recibido:", req.body);
+  console.log("Tickets Headers:", req.headers);
+  console.log("Tickets Cuerpo recibido:", req.body);
   const message = req.body
   const messageType = req.headers["x-amz-sns-message-type"];
   //const message = JSON.parse(req.body);
-  console.log("Tipo de mensaje:", messageType);
+  console.log("Tickets Tipo de mensaje:", messageType);
 
   // Confirmar suscripción
   if (messageType === "SubscriptionConfirmation") {
     const confirmUrl = message.SubscribeURL;
 
     try {
-      console.log(`Confirmando suscripción para el tópico: ${message.TopicArn}`);
+      console.log(`Tickets - Confirmando suscripción para el tópico: ${message.TopicArn}`);
       await fetch(confirmUrl);
-      console.log("Suscripción confirmada exitosamente.");
+      console.log("Tickets - Suscripción confirmada exitosamente.");
     } catch (error) {
-      console.error(`Error al confirmar la suscripción: ${error.message}`);
+      console.error(`Tickets -Error al confirmar la suscripción: ${error.message}`);
       return res.status(500).send("Error al confirmar la suscripción");
     }
   }
 // Manejar notificaciones
 if (messageType === "Notification") {
-  console.log("Notificación recibida:", message);
+  console.log("Tickets - Notificación recibida:", message);
   
   const { MessageId: messageId, source } = message; // Obtener messageId y source
 
   if (source !== "tickets-module" || detailType !== "ticket.purchase") {
-      console.error("El mensaje no cumple con los valores esperados.");
+      console.error("Tickets - El mensaje no cumple con los valores esperados.");
       await logError(
         "Notification",
         `El mensaje no tiene los valores esperados. Source: ${source}, Detail-Type: ${detailType}`,
         req.body
       );
-      return res.status(400).json({ error: "El mensaje no cumple con los valores esperados" });
+      return res.status(400).json({ error: "Tickets - El mensaje no cumple con los valores esperados" });
   }
   // Extraer datos del cuerpo de la solicitud
   const {
@@ -256,4 +256,27 @@ router.delete("/:idPago", async (req, res) => {
   }
 });
 
+
+// Funciones auxiliares para el registro de logs
+async function logError(operation, message, data) {
+  try {
+    await pool.query(
+      `INSERT INTO log_eventos (status, operation, message, data) VALUES ($1, $2, $3, $4)`,
+      ["error", operation, message, JSON.stringify(data)]
+    );
+  } catch (logError) {
+    console.error("Error al registrar el log:", logError);
+  }
+}
+
+async function logSuccess(operation, message, data) {
+  try {
+    await pool.query(
+      `INSERT INTO log_eventos (status, operation, message, data) VALUES ($1, $2, $3, $4)`,
+      ["success", operation, message, JSON.stringify(data)]
+    );
+  } catch (logError) {
+    console.error("Error al registrar el log de éxito:", logError);
+  }
+}
 export default router;

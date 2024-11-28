@@ -69,9 +69,9 @@ app.get("/subscribir", async (_req, res) => {
     });
   }
 });
-app.use('/tickets', ticketRoutes);
 app.use('/artistas', artistaRoutes);
 app.use('/eventos', eventoRoutes);
+app.use('/tickets', ticketRoutes);
 app.use('/usuarios', usuariosRoutes);
 app.use('/predecir' , predecirRoutes);
 

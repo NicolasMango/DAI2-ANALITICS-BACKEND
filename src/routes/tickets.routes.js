@@ -29,7 +29,7 @@ router.post("/", async (req, res) => {
 if (messageType === "Notification") {
   console.log("Tickets - Notificación recibida:", message);
   
-  const { MessageId: messageId, source } = message; // Obtener messageId y source
+  const { MessageId: messageId, source , "detail-type": detailType } = message; // Obtener messageId y source
 
   if (source !== "tickets-module" || detailType !== "ticket.purchase") {
       console.error("Tickets - El mensaje no cumple con los valores esperados.");

@@ -127,7 +127,7 @@ if (messageType === "Notification") {
     if (!idEvento) errores.push("El campo 'idEvento' es obligatorio.");
     if (!valorTotal) {
       errores.push("El campo 'valorTotal' es obligatorio.");
-    } else if (isNaN(precioTotal.$numberInt) || valorTotal.$numberInt <= 0) {
+    } else if (isNaN(valorTotal.$numberInt) || valorTotal.$numberInt <= 0) {
       errores.push("El campo 'valorTotal' debe ser un número mayor a 0.");
     }
 

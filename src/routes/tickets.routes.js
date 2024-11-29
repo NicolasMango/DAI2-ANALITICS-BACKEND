@@ -129,7 +129,7 @@ if (messageType === "Notification") {
       errores.push("El campo 'valorTotal' es obligatorio.");
     }
     const estado = originalEstado !== undefined ? originalEstado : false;
-    const estadio = originalEstadio !== undefined ? originalEstadio : 0;
+    const estadio = originalEstadio !== undefined ? originalEstadio : 1;
     const precioTotal = valorTotal !== undefined && !isNaN(valorTotal) ? valorTotal : 0;     
     // Si hay errores, registrar en la tabla de errores y responder
     if (errores.length > 0) {
@@ -182,11 +182,11 @@ if (messageType === "Notification") {
           mailUsuario,
           idEvento,
           precioTotal,
-          estadio.$numberInt,
-          cantidadGeneral.$numberInt,
-          cantidadVip.$numberInt,
-          cantidadIzquierda.$numberInt,
-          cantidadDerecha.$numberInt,
+          estadio,
+          cantidadGeneral,
+          cantidadVip,
+          cantidadIzquierda,
+          cantidadDerecha,
         ]
       );
 

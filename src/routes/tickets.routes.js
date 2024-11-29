@@ -130,7 +130,7 @@ if (messageType === "Notification") {
     }
     const estado = originalEstado !== undefined ? originalEstado : false;
     const estadio = originalEstadio !== undefined ? originalEstadio : 0;
-    
+    const precioTotal = valorTotal !== undefined && !isNaN(valorTotal) ? valorTotal : 0;     
     // Si hay errores, registrar en la tabla de errores y responder
     if (errores.length > 0) {
       const errorMessage = errores.join(" ");
@@ -155,7 +155,7 @@ if (messageType === "Notification") {
         estado,
         mailUsuario,
         idEvento,
-        valorTotal,
+        precioTotal,
         estadio,
         cantidadGeneral,
         cantidadVip,
@@ -181,7 +181,7 @@ if (messageType === "Notification") {
           estado,
           mailUsuario,
           idEvento,
-          valorTotal.$numberInt,
+          precioTotal,
           estadio.$numberInt,
           cantidadGeneral.$numberInt,
           cantidadVip.$numberInt,

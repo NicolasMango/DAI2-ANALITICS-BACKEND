@@ -43,7 +43,7 @@ if (messageType === "Notification") {
   }
   const { MessageId: messageId, source , "detail-type": detailType } = parsedMessage; // Obtener messageId y source
 
-  if (source !== "tickets-module" || (detailType !== "ticket.purchase" && detailType !== "tickets.repurchase")) {
+  if (source !== "tickets-module" || (detailType !== "ticket.purchase" && detailType !== "ticket.repurchase")) {
     console.error("Tickets - El mensaje no cumple con los valores esperados.");
     await logError(
       "Notification",
@@ -53,7 +53,7 @@ if (messageType === "Notification") {
     return res.status(400).json({ error: "Tickets - El mensaje no cumple con los valores esperados" });
   }
   
-  if (detailType === "tickets.repurchase"){
+  if (detailType === "ticket.repurchase"){
     const {
       mailUsuarioCompra,
       mailUsuarioVenta,

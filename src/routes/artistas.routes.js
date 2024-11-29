@@ -34,21 +34,44 @@ router.post("/", async (req, res) => {
   if (messageType === "Notification") {
     console.log("Artistas - Notificación recibida:", message);
 
+      // Parsear el campo Message como JSON
+    let parsedMessage;
+    try {
+      parsedMessage = JSON.parse(message.Message); // Convierte el campo Message a un objeto
+    } catch (err) {
+      console.error("Artistas - Error al parsear el campo 'Message':", err.message);
+      await logError(
+        "Notification",
+        "Error al parsear el campo 'Message'",
+        req.body
+      );
+      return res.status(400).json({ error: "Artistas - Formato inválido en el campo 'Message'" });
+    }
+    const { MessageId: messageId, source , "detail-type": detailType } = parsedMessage; // Obtener messageId y source
+
+    if (source !== "artist-module" || detailType !== "artist.profile.created") {
+      console.error("Artistas - El mensaje no cumple con los valores esperados.");
+      await logError(
+        "Notification",
+        `El mensaje no tiene los valores esperados. Source: ${source}, Detail-Type: ${detailType}`,
+        req.body
+      );
+      return res.status(400).json({ error: "Artistas - El mensaje no cumple con los valores esperados" });
+    }
+
     // Validación del cuerpo del mensaje
     const {
-      idArtist,
+      artistId,
       artisticName,
       legalOwner,
       bio,
       socialMediaIds,
       genreIds,
       imageUrls,
-    } = message;
-
-    const { MessageId: messageId, source } = message;
+    } = parsedMessage;
 
     const errores = [];
-    if (!idArtist) errores.push("El campo 'idArtista' es obligatorio.");
+    if (!artistId) errores.push("El campo 'artistId' es obligatorio.");
     if (!artisticName) errores.push("El campo 'artisticName' es obligatorio.");
     if (!legalOwner) errores.push("El campo 'legalOwner' es obligatorio.");
     if (!socialMediaIds || !Array.isArray(socialMediaIds)) {
@@ -90,7 +113,7 @@ router.post("/", async (req, res) => {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *`,
         [
-          idArtist,
+          artistId,
           artisticName,
           legalOwner,
           bio,
@@ -100,6 +123,8 @@ router.post("/", async (req, res) => {
         ]
       );
 
+      console.log("Artistas creada exitosamente:", result.rows[0]);
+      await logSuccess("Notification", "Artistas creada exitosamente.", result.rows[0]);
       // Log de éxito
       try {
         await pool.query(

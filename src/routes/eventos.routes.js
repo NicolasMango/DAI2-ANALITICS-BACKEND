@@ -72,7 +72,7 @@ router.post("/", async (req, res) => {
       artists,
       entradasRegaladas,
       titulo,
-    } = req.body;
+    } = parsedMessage;
 
     // Validación de datos
     const errores = [];

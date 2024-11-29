@@ -109,11 +109,11 @@ if (messageType === "Notification") {
   // Extraer datos del cuerpo de la solicitud
     const {
       idPago,
-      estado,
+      estado: originalEstado,
       mailUsuario,
       idEvento,
       valorTotal,
-      estadio,
+      estadio: originalEstadio,
       cantidadGeneral,
       cantidadVip,
       cantidadIzquierda,
@@ -128,7 +128,9 @@ if (messageType === "Notification") {
     if (!valorTotal) {
       errores.push("El campo 'valorTotal' es obligatorio.");
     }
-
+    const estado = originalEstado !== undefined ? originalEstado : false;
+    const estadio = originalEstadio !== undefined ? originalEstadio : 0;
+    
     // Si hay errores, registrar en la tabla de errores y responder
     if (errores.length > 0) {
       const errorMessage = errores.join(" ");

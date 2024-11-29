@@ -110,25 +110,25 @@ if (messageType === "Notification") {
     const {
       idPago,
       estado,
-      idUsuario,
+      mailUsuario,
       idEvento,
-      precioTotal,
+      valorTotal,
       estadio,
-      cantidadSectorGeneral,
-      cantidadSectorVip,
-      cantidadSectorIzquierda,
-      cantidadSectorDerecha,
-    } = req.body;
+      cantidadGeneral,
+      cantidadVip,
+      cantidadIzquierda,
+      cantidadDerecha,
+    } = parsedMessage.detail || {};
 
     // Validar que los campos requeridos estén presentes
     const errores = [];
     if (!idPago) errores.push("El campo 'idPago' es obligatorio.");
-    if (!idUsuario) errores.push("El campo 'idUsuario' es obligatorio.");
+    if (!mailUsuario) errores.push("El campo 'mailUsuario' es obligatorio.");
     if (!idEvento) errores.push("El campo 'idEvento' es obligatorio.");
-    if (!precioTotal) {
-      errores.push("El campo 'precioTotal' es obligatorio.");
-    } else if (isNaN(precioTotal.$numberInt) || precioTotal.$numberInt <= 0) {
-      errores.push("El campo 'precioTotal' debe ser un número mayor a 0.");
+    if (!valorTotal) {
+      errores.push("El campo 'valorTotal' es obligatorio.");
+    } else if (isNaN(precioTotal.$numberInt) || valorTotal.$numberInt <= 0) {
+      errores.push("El campo 'valorTotal' debe ser un número mayor a 0.");
     }
 
     // Si hay errores, registrar en la tabla de errores y responder
@@ -153,14 +153,14 @@ if (messageType === "Notification") {
       console.log("Valores recibidos:", {
         idPago,
         estado,
-        idUsuario,
+        mailUsuario,
         idEvento,
-        precioTotal,
+        valorTotal,
         estadio,
-        cantidadSectorGeneral,
-        cantidadSectorVip,
-        cantidadSectorIzquierda,
-        cantidadSectorDerecha,
+        cantidadGeneral,
+        cantidadVip,
+        cantidadIzquierda,
+        cantidadDerecha,
       });
 
       const result = await pool.query(
@@ -179,14 +179,14 @@ if (messageType === "Notification") {
         [
           idPago,
           estado,
-          idUsuario,
+          mailUsuario,
           idEvento,
-          precioTotal.$numberInt,
+          valorTotal.$numberInt,
           estadio.$numberInt,
-          cantidadSectorGeneral.$numberInt,
-          cantidadSectorVip.$numberInt,
-          cantidadSectorIzquierda.$numberInt,
-          cantidadSectorDerecha.$numberInt,
+          cantidadGeneral.$numberInt,
+          cantidadVip.$numberInt,
+          cantidadIzquierda.$numberInt,
+          cantidadDerecha.$numberInt,
         ]
       );
 
@@ -254,14 +254,14 @@ router.put("/:idPago", async (req, res) => {
   const { idPago } = req.params;
   const {
     estado,
-    idUsuario,
+    mailUsuario,
     idEvento,
-    precioTotal,
+    valorTotal,
     estadio,
-    cantidadSectorGeneral,
-    cantidadSectorVip,
-    cantidadSectorIzquierda,
-    cantidadSectorDerecha,
+    cantidadGeneral,
+    cantidadVip,
+    cantidadIzquierda,
+    cantidadDerecha,
   } = req.body;
 
   try {
@@ -279,14 +279,14 @@ router.put("/:idPago", async (req, res) => {
        WHERE id_tiket = $10 RETURNING *`,
       [
         estado,
-        idUsuario,
+        mailUsuario,
         idEvento,
-        precioTotal.$numberInt,
+        valorTotal.$numberInt,
         estadio.$numberInt,
-        cantidadSectorGeneral.$numberInt,
-        cantidadSectorVip.$numberInt,
-        cantidadSectorIzquierda.$numberInt,
-        cantidadSectorDerecha.$numberInt,
+        cantidadGeneral.$numberInt,
+        cantidadVip.$numberInt,
+        cantidadIzquierda.$numberInt,
+        cantidadDerecha.$numberInt,
         idPago,
       ]
     );

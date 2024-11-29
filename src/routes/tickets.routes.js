@@ -28,63 +28,86 @@ router.post("/", async (req, res) => {
 // Manejar notificaciones
 if (messageType === "Notification") {
   console.log("Tickets - Notificación recibida:", message);
-  
-  const { MessageId: messageId, source , "detail-type": detailType } = message; // Obtener messageId y source
+  // Parsear el campo Message como JSON
+  let parsedMessage;
+  try {
+    parsedMessage = JSON.parse(message.Message); // Convierte el campo Message a un objeto
+  } catch (err) {
+    console.error("Tickets - Error al parsear el campo 'Message':", err.message);
+    await logError(
+      "Notification",
+      "Error al parsear el campo 'Message'",
+      req.body
+    );
+    return res.status(400).json({ error: "Tickets - Formato inválido en el campo 'Message'" });
+  }
+  const { MessageId: messageId, source , "detail-type": detailType } = parsedMessage; // Obtener messageId y source
 
-  if (source !== "tickets-module" || detailType !== "ticket.purchase") {
-      console.error("Tickets - El mensaje no cumple con los valores esperados.");
+  if (source !== "tickets-module" || (detailType !== "ticket.purchase" && detailType !== "tickets.repurchase")) {
+    console.error("Tickets - El mensaje no cumple con los valores esperados.");
+    await logError(
+      "Notification",
+      `El mensaje no tiene los valores esperados. Source: ${source}, Detail-Type: ${detailType}`,
+      req.body
+    );
+    return res.status(400).json({ error: "Tickets - El mensaje no cumple con los valores esperados" });
+  }
+  
+  if (detailType === "tickets.repurchase"){
+    const {
+      mailUsuarioCompra,
+      mailUsuarioVenta,
+      idNFT,
+      idEntrada,
+      idEvento,
+      idPago
+    } = parsedMessage.detail || {};
+
+    // Validar campos obligatorios
+    const errores = [];
+    if (!mailUsuarioCompra) errores.push("El campo 'mailUsuarioCompra' es obligatorio.");
+    if (!mailUsuarioVenta) errores.push("El campo 'mailUsuarioVenta' es obligatorio.");
+    if (!idNFT) errores.push("El campo 'idNFT' es obligatorio.");
+    if (!idEntrada) errores.push("El campo 'idEntrada' es obligatorio.");
+    if (!idEvento) errores.push("El campo 'idEvento' es obligatorio.");
+    if (!idPago) errores.push("El campo 'idPago' es obligatorio.");
+
+    if (errores.length > 0) {
+      const errorMessage = errores.join(" ");
+      console.error("Errores de validación:", errorMessage);
       await logError(
         "Notification",
-        `El mensaje no tiene los valores esperados. Source: ${source}, Detail-Type: ${detailType}`,
+        errorMessage,
         req.body
       );
-      return res.status(400).json({ error: "Tickets - El mensaje no cumple con los valores esperados" });
-  }
-  // Extraer datos del cuerpo de la solicitud
-  const {
-    idPago,
-    estado,
-    idUsuario,
-    idEvento,
-    precioTotal,
-    estadio,
-    cantidadSectorGeneral,
-    cantidadSectorVip,
-    cantidadSectorIzquierda,
-    cantidadSectorDerecha,
-  } = req.body;
-
-  // Validar que los campos requeridos estén presentes
-  const errores = [];
-  if (!idPago) errores.push("El campo 'idPago' es obligatorio.");
-  if (!idUsuario) errores.push("El campo 'idUsuario' es obligatorio.");
-  if (!idEvento) errores.push("El campo 'idEvento' es obligatorio.");
-  if (!precioTotal) {
-    errores.push("El campo 'precioTotal' es obligatorio.");
-  } else if (isNaN(precioTotal.$numberInt) || precioTotal.$numberInt <= 0) {
-    errores.push("El campo 'precioTotal' debe ser un número mayor a 0.");
-  }
-
-  // Si hay errores, registrar en la tabla de errores y responder
-  if (errores.length > 0) {
-    const errorMessage = errores.join(" ");
-    console.error("Errores de validación:", errorMessage);
-
-    try {
-      await pool.query(
-        `INSERT INTO log_eventos (message_id, source, status, message, data) VALUES ($1, $2, $3, $4, $5)`,
-        [messageId || null, source || null, "error", errorMessage, JSON.stringify(req.body)]
-      );
-    } catch (logError) {
-      console.error("Error al registrar el log:", logError);
+      return res.status(400).json({ error: errorMessage });
     }
 
-    return res.status(400).json({ error: errorMessage });
-  }
+    // Insertar la reventa en la base de datos
+    try {
+      const result = await pool.query(
+        `INSERT INTO reventas (
+          mail_usuario_compra, mail_usuario_venta, id_nft, id_entrada,
+          id_evento, id_pago
+        ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [mailUsuarioCompra, mailUsuarioVenta, idNFT, idEntrada, idEvento, idPago]
+      );
 
-  // Intentar insertar en la tabla principal
-  try {
-    console.log("Valores recibidos:", {
+      console.log("Reventa creada exitosamente:", result.rows[0]);
+      await logSuccess("Notification", "Reventa creada exitosamente.", result.rows[0]);
+      res.status(201).json(result.rows[0]);
+    } catch (error) {
+      console.error("Error al crear la reventa:", error.message);
+      await logError(
+        "Notification",
+        "Error al crear la reventa",
+        req.body
+      );
+      res.status(500).json({ error: "Error al crear la reventa" });
+    }
+  }else{ 
+  // Extraer datos del cuerpo de la solicitud
+    const {
       idPago,
       estado,
       idUsuario,
@@ -95,60 +118,104 @@ if (messageType === "Notification") {
       cantidadSectorVip,
       cantidadSectorIzquierda,
       cantidadSectorDerecha,
-    });
+    } = req.body;
 
-    const result = await pool.query(
-      `INSERT INTO tickets (
-        id_ticket,
-        estado,
-        id_usuario,
-        id_evento,
-        precio_total,
-        estadio,
-        cantidad_sector_general,
-        cantidad_sector_vip,
-        cantidad_sector_izquierda,
-        cantidad_sector_derecha
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-      [
+    // Validar que los campos requeridos estén presentes
+    const errores = [];
+    if (!idPago) errores.push("El campo 'idPago' es obligatorio.");
+    if (!idUsuario) errores.push("El campo 'idUsuario' es obligatorio.");
+    if (!idEvento) errores.push("El campo 'idEvento' es obligatorio.");
+    if (!precioTotal) {
+      errores.push("El campo 'precioTotal' es obligatorio.");
+    } else if (isNaN(precioTotal.$numberInt) || precioTotal.$numberInt <= 0) {
+      errores.push("El campo 'precioTotal' debe ser un número mayor a 0.");
+    }
+
+    // Si hay errores, registrar en la tabla de errores y responder
+    if (errores.length > 0) {
+      const errorMessage = errores.join(" ");
+      console.error("Errores de validación:", errorMessage);
+
+      try {
+        await pool.query(
+          `INSERT INTO log_eventos (message_id, source, status, message, data) VALUES ($1, $2, $3, $4, $5)`,
+          [messageId || null, source || null, "error", errorMessage, JSON.stringify(req.body)]
+        );
+      } catch (logError) {
+        console.error("Error al registrar el log:", logError);
+      }
+
+      return res.status(400).json({ error: errorMessage });
+    }
+
+    // Intentar insertar en la tabla principal
+    try {
+      console.log("Valores recibidos:", {
         idPago,
         estado,
         idUsuario,
         idEvento,
-        precioTotal.$numberInt,
-        estadio.$numberInt,
-        cantidadSectorGeneral.$numberInt,
-        cantidadSectorVip.$numberInt,
-        cantidadSectorIzquierda.$numberInt,
-        cantidadSectorDerecha.$numberInt,
-      ]
-    );
+        precioTotal,
+        estadio,
+        cantidadSectorGeneral,
+        cantidadSectorVip,
+        cantidadSectorIzquierda,
+        cantidadSectorDerecha,
+      });
 
-    // Registrar el éxito en la tabla de logs
-    try {
-      await pool.query(
-        `INSERT INTO log_eventos (message_id, source, status, message, data) VALUES ($1, $2, $3, $4, $5)`,
-        [messageId || null, source || null, "success", "Ticket registrado con éxito", JSON.stringify(result.rows[0])]
+      const result = await pool.query(
+        `INSERT INTO tickets (
+          id_tiket,
+          estado,
+          id_usuario,
+          id_evento,
+          precio_total,
+          estadio,
+          cantidad_sector_general,
+          cantidad_sector_vip,
+          cantidad_sector_izquierda,
+          cantidad_sector_derecha
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+        [
+          idPago,
+          estado,
+          idUsuario,
+          idEvento,
+          precioTotal.$numberInt,
+          estadio.$numberInt,
+          cantidadSectorGeneral.$numberInt,
+          cantidadSectorVip.$numberInt,
+          cantidadSectorIzquierda.$numberInt,
+          cantidadSectorDerecha.$numberInt,
+        ]
       );
-    } catch (logError) {
-      console.error("Error al registrar el log de éxito:", logError);
+
+      // Registrar el éxito en la tabla de logs
+      try {
+        await pool.query(
+          `INSERT INTO log_eventos (message_id, source, status, message, data) VALUES ($1, $2, $3, $4, $5)`,
+          [messageId || null, source || null, "success", "Ticket registrado con éxito", JSON.stringify(result.rows[0])]
+        );
+      } catch (logError) {
+        console.error("Error al registrar el log de éxito:", logError);
+      }
+
+      res.status(201).json(result.rows[0]);
+    } catch (error) {
+      console.error("Error al registrar el Ticket:", error);
+
+      // Registrar el error en la tabla de logs
+      try {
+        await pool.query(
+          `INSERT INTO log_eventos (message_id, source, status, message, data) VALUES ($1, $2, $3, $4, $5)`,
+          [messageId || null, source || null, "error", "Error al registrar el Ticket", JSON.stringify(req.body)]
+        );
+      } catch (logError) {
+        console.error("Error al registrar el log:", logError);
+      }
+
+      res.status(500).json({ error: "Error al registrar el Ticket" });
     }
-
-    res.status(201).json(result.rows[0]);
-  } catch (error) {
-    console.error("Error al registrar el Ticket:", error);
-
-    // Registrar el error en la tabla de logs
-    try {
-      await pool.query(
-        `INSERT INTO log_eventos (message_id, source, status, message, data) VALUES ($1, $2, $3, $4, $5)`,
-        [messageId || null, source || null, "error", "Error al registrar el Ticket", JSON.stringify(req.body)]
-      );
-    } catch (logError) {
-      console.error("Error al registrar el log:", logError);
-    }
-
-    res.status(500).json({ error: "Error al registrar el Ticket" });
   }
 }
 });
@@ -169,7 +236,7 @@ router.get("/:idPago", async (req, res) => {
 
   try {
     const result = await pool.query(
-      "SELECT * FROM tickets WHERE id_ticket = $1",
+      "SELECT * FROM tickets WHERE id_tiket = $1",
       [idPago]
     );
     if (result.rows.length === 0) {
@@ -209,7 +276,7 @@ router.put("/:idPago", async (req, res) => {
          cantidad_sector_vip = $7,
          cantidad_sector_izquierda = $8,
          cantidad_sector_derecha = $9
-       WHERE id_ticket = $10 RETURNING *`,
+       WHERE id_tiket = $10 RETURNING *`,
       [
         estado,
         idUsuario,
@@ -240,7 +307,7 @@ router.delete("/:idPago", async (req, res) => {
 
   try {
     const result = await pool.query(
-      "DELETE FROM tickets WHERE id_ticket = $1 RETURNING *",
+      "DELETE FROM tickets WHERE id_tiket = $1 RETURNING *",
       [idPago]
     );
     if (result.rows.length === 0) {

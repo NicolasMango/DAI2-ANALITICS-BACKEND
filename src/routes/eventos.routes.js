@@ -30,8 +30,19 @@ router.post("/", async (req, res) => {
   // Manejo de Notification
   if (messageType === "Notification") {
     console.log("Recitales - Notificación recibida:", message);
-
-    const { MessageId: messageId, source, "detail-type": detailType } = message;
+    let parsedMessage;
+    try {
+      parsedMessage = JSON.parse(message.Message); // Convierte el campo Message a un objeto
+    } catch (err) {
+      console.error("Eventos - Error al parsear el campo 'Message':", err.message);
+      await logError(
+        "Notification",
+        "Error al parsear el campo 'Message'",
+        req.body
+      );
+      return res.status(400).json({ error: "Eventos - Formato inválido en el campo 'Message'" });
+    }
+    const { MessageId: messageId, source, "detail-type": detailType } = parsedMessage;
     if (source !== "artist-module" || detailType !== "recital.created") {
       console.error("Recitales - El mensaje no cumple con los valores esperados.");
       await logError(

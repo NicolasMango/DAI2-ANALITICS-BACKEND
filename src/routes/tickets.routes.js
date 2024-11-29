@@ -261,7 +261,7 @@ router.delete("/:idPago", async (req, res) => {
 async function logError(operation, message, data) {
   try {
     await pool.query(
-      `INSERT INTO log_eventos (status, message, data) VALUES ($1, $2, $3, $4)`,
+      `INSERT INTO log_eventos (status, message, data) VALUES ($1, $2, $3)`,
       ["error", message, JSON.stringify(data)]
     );
   } catch (logError) {
@@ -272,7 +272,7 @@ async function logError(operation, message, data) {
 async function logSuccess(operation, message, data) {
   try {
     await pool.query(
-      `INSERT INTO log_eventos (status, message, data) VALUES ($1, $2, $3, $4)`,
+      `INSERT INTO log_eventos (status, message, data) VALUES ($1, $2, $3)`,
       ["success", message, JSON.stringify(data)]
     );
   } catch (logError) {

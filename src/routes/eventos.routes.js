@@ -31,7 +31,7 @@ router.post("/", async (req, res) => {
   if (messageType === "Notification") {
     console.log("Recitales - Notificación recibida:", message);
 
-    const { source, "detail-type": detailType } = message;
+    const { MessageId: messageId, source, "detail-type": detailType } = message;
     if (source !== "artist-module" || detailType !== "recital.created") {
       console.error("Recitales - El mensaje no cumple con los valores esperados.");
       await logError(
@@ -84,8 +84,8 @@ router.post("/", async (req, res) => {
       console.error("Errores de validación:", errorMessage);
       try {
         await pool.query(
-          `INSERT INTO log_eventos (status, message, data) VALUES ($1, $2, $3)`,
-          ["error", errorMessage, JSON.stringify(req.body)]
+          `INSERT INTO log_eventos (message_id, source, status, message, data) VALUES ($1, $2, $3, $4, $5)`,
+          [messageId || null, source || null, "error", errorMessage, JSON.stringify(req.body)]
         );
       } catch (logError) {
         console.error("Error al registrar el log:", logError);
@@ -317,7 +317,7 @@ router.delete("/:id", async (req, res) => {
 async function logError(operation, message, data) {
   try {
     await pool.query(
-      `INSERT INTO log_eventos (status, message, data) VALUES ($1, $2, $3, $4)`,
+      `INSERT INTO log_eventos (status, message, data) VALUES ($1, $2, $3)`,
       ["error", message, JSON.stringify(data)]
     );
   } catch (logError) {
@@ -328,7 +328,7 @@ async function logError(operation, message, data) {
 async function logSuccess(operation, message, data) {
   try {
     await pool.query(
-      `INSERT INTO log_eventos (status, message, data) VALUES ($1, $2, $3, $4)`,
+      `INSERT INTO log_eventos (status, message, data) VALUES ($1, $2, $3)`,
       ["success", message, JSON.stringify(data)]
     );
   } catch (logError) {

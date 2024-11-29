@@ -123,10 +123,9 @@ router.post("/", async (req, res) => {
         ]
       );
 
-      console.log("Artistas creada exitosamente:", result.rows[0]);
-      await logSuccess("Notification", "Artistas creada exitosamente.", result.rows[0]);
       // Log de éxito
       try {
+        console.log("Artistas creada exitosamente:", result.rows[0]);
         await pool.query(
           `INSERT INTO log_eventos (message_id, source, status, message, data) VALUES ($1, $2, $3, $4, $5)`,
           [messageId || null, source || null, "success", "Artista creado o actualizado con éxito", JSON.stringify(result.rows[0])]

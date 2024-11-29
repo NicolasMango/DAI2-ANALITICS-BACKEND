@@ -190,9 +190,11 @@ if (messageType === "Notification") {
 
       // Registrar el éxito en la tabla de logs
       try {
+        console.log("Tickets creada exitosamente:", result.rows[0]);
         await pool.query(
           `INSERT INTO log_eventos (message_id, source, status, message, data) VALUES ($1, $2, $3, $4, $5)`,
           [messageId || null, source || null, "success", "Ticket registrado con éxito", JSON.stringify(result.rows[0])]
+          
         );
       } catch (logError) {
         console.error("Error al registrar el log de éxito:", logError);

@@ -72,7 +72,7 @@ router.post("/", async (req, res) => {
       artists,
       entradasRegaladas,
       titulo,
-    } = parsedMessage;
+    } = parsedMessage.detail || {};
 
     // Validación de datos
     const errores = [];
@@ -147,6 +147,7 @@ router.post("/", async (req, res) => {
 
       // Registrar éxito en la tabla log_eventos
       try {
+        console.log("Recital creado exitosamente:", result.rows[0]);
         await pool.query(
           `INSERT INTO log_eventos (status, message, data) VALUES ($1, $2, $3)`,
           ["success", "Evento creado con éxito", JSON.stringify(eventoResult.rows[0])]

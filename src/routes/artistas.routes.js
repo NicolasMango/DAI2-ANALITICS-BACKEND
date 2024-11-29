@@ -68,7 +68,7 @@ router.post("/", async (req, res) => {
       socialMediaIds,
       genreIds,
       imageUrls,
-    } = parsedMessage;
+    } = parsedMessage.detail || {};
 
     const errores = [];
     if (!artistId) errores.push("El campo 'artistId' es obligatorio.");
